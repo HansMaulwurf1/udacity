@@ -69,7 +69,7 @@ In the classroom workspace, every library and package should already be installe
 
 You should use the data already present in `/home/workspace/data/waymo` directory to explore the dataset! This is the most important task of any machine learning project. To do so, open the `Exploratory Data Analysis` notebook. In this notebook, your first task will be to implement a `display_instances` function to display images and annotations using `matplotlib`. This should be very similar to the function you created during the course. Once you are done, feel free to spend more time exploring the data and report your findings. Report anything relevant about the dataset in the writeup.
 
-Keep in mind that you should refer to this analysis to create the different spits (training, testing and validation).
+Keep in mind that you should refer to this analysis to create the different spits (training, test and validation).
 
 
 ### Create the training - validation splits
@@ -148,7 +148,52 @@ This section should contain a brief description of the steps to follow to run th
 
 ### Dataset
 #### Dataset analysis
-This section should contain a quantitative and qualitative description of the dataset. It should include images, charts and other visualizations.
+To get a good overview of the data we perform first an exploratory data analysis (EDA). This is a crucial step to get a feeling for the data we deal with.
+But not only the feeling for the data is important, but we check on which scenarios we train our network. 
+Is there any bias (weather, scenes, daytime, country, location, distribution of classes, format, over-/under-representation, ...)? And also the similarity of training, validation and test set is examined.
+If they are very similar, we could not make assumptions about the generality of predictions from our network. They must not be related to training set.
+
+##### Procedure:
+We visualized 10 images at once of a single dataset together with its bounding boxes and classification. This was done repeated times with random images from the dataset.\
+This procedure was repeated for several datasets from the training, validation and test folder.
+
+##### Findings:
+Dataset 1 (train):\
+All scenes are in cloudy, rainy and urban conditions. From the randomly depicted images we could only see camera classifications.
+We are clearly in a country with ride-sided traffic. Therefore, most car classifications are located on the right side of the image.
+This however, is a general observation. So it might imply a bias on the image classification network and might result
+in a worse car classification if the car is on the left side. So this might pose a loss of generality.
+However, this is no point of investigation in the upcoming tasks.
+Also, we mostly see cars from the back. Other datasets should contain also cars from other perspectives to achieve a general classification.
+![Datase 1](images/EDA/dataset_1.png)
+
+Dataset 2:\
+The dataset was recorded at night in an urban environment. We only see few cars on the streets. The streetlights cause artefacts on the image.
+Only cars are seen on the dataset. No pedestrians, cyclists or other traffic participants.
+
+Dataset 3:\
+The dataset was recorded at daytime with cloudy partially wet weather. The environment is a freeway. Here we also see trucks.
+
+Dataset 3:\
+The dataset was recorded at night a suburban environment. Here we also see pedestrians which are labeled.
+![Datase 4](images/EDA/dataset_4.png)
+
+In general, we can say, we see a broad distribution of weather and environmental conditions. Each dataset is a sequence of images from the same drive.
+The distribution of labels is clearly towards cars (and trucks which are much fewer but with the same classification). 
+Due to the low occurrence of e.g. cyclists or motorcycles, we might perform bad identifying such objects.
+
+The three dataset categories (train, validation, test) differ sufficiently.
+
+##### Statistical analysis:
+We also analysed the distribution of classes along all frames within the training data set. We plot the results in the figure below.
+You see a plot for each classification and for the sum over all classifications. On the x-axis is the number of found 
+bounding boxes with this classification within a single frame. On the y-axis the number of frames which fulfill this condition.
+The histogram shows, that we have a quite flat distribution of classification 1, which is car/truck up to 40 classifications per frame.
+Above that the number of frames with such a high number of classifications get less. But some frames have up to 70 bounding boxes of that classification.
+We also see lot's of classification 2 (pedestrian). None for classification 3. For classification 4 we have many with very few classifications per frame, but none with more than 10.
+![Logarithmic distribution of classes](images/EDA/class_ditribution_log.png)
+
+We have a similar distribution for the validation and test set.
 #### Cross validation
 This section should detail the cross validation strategy and justify your approach.
 
