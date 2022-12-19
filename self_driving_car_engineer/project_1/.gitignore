@@ -1,3 +1,8 @@
-/data
+/data*
 /pretrained_model
-/experiments
+/experiments*
+/official
+/object_detection
+/.idea
+/.ipynb_checkpoints
+/__pycache__

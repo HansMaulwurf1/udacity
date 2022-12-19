@@ -141,7 +141,19 @@ python inference_video.py --labelmap_path label_map.pbtxt --model_path experimen
 ## Submission Template
 
 ### Project overview
-This section should contain a brief description of the project and what we are trying to achieve. Why is object detection such an important component of self driving car systems?
+Machine learning algorithms are the nowadays fundamentals of self driving cars. While decades ago the first attempts were only based
+on classical image detection algorithms. These just gave limiting results. They were actually quite acceptable in terms of object/obstacle avoidance.
+But they were extremely limited when it comes to object tracking. Without a reasonable classification of the detected objects/obstacles
+it is impossible to react properly on each detection and to create driving profiles.
+
+First when the machine learning algorithms were good enough and computers fast enough, the uprise of self-driving cars 
+found its way back to common research and afterwards to industrialization. 
+
+In this project, we are going to apply all out newly gained knowledge about neural-network based computer vision.
+We take the data from the Waymo open dataset. We start with an analysis of the data. This is crucial to find potential bias
+in the data and to see for which scenarios the network is trained.\
+Afterwards, we train a predefined model and tweak its performance by augmentation of the dataset and the varying learning rates, schedulers and potential network changes.
+
 
 ### Set up
 This section should contain a brief description of the steps to follow to run the code for this repository.
@@ -165,7 +177,7 @@ This however, is a general observation. So it might imply a bias on the image cl
 in a worse car classification if the car is on the left side. So this might pose a loss of generality.
 However, this is no point of investigation in the upcoming tasks.
 Also, we mostly see cars from the back. Other datasets should contain also cars from other perspectives to achieve a general classification.
-![Datase 1](images/EDA/dataset_1.png)
+![Dataset 1](images/EDA/dataset_1.png)
 
 Dataset 2:\
 The dataset was recorded at night in an urban environment. We only see few cars on the streets. The streetlights cause artefacts on the image.
@@ -174,9 +186,9 @@ Only cars are seen on the dataset. No pedestrians, cyclists or other traffic par
 Dataset 3:\
 The dataset was recorded at daytime with cloudy partially wet weather. The environment is a freeway. Here we also see trucks.
 
-Dataset 3:\
+Dataset 4:\
 The dataset was recorded at night a suburban environment. Here we also see pedestrians which are labeled.
-![Datase 4](images/EDA/dataset_4.png)
+![Dataset 4](images/EDA/dataset_4.png)
 
 In general, we can say, we see a broad distribution of weather and environmental conditions. Each dataset is a sequence of images from the same drive.
 The distribution of labels is clearly towards cars (and trucks which are much fewer but with the same classification). 
@@ -194,12 +206,80 @@ We also see lot's of classification 2 (pedestrian). None for classification 3. F
 ![Logarithmic distribution of classes](images/EDA/class_ditribution_log.png)
 
 We have a similar distribution for the validation and test set.
+
 #### Cross validation
-This section should detail the cross validation strategy and justify your approach.
+To cross validate the results we split up the whole dataset into training and validation. 
+The split is done 89:11. So 11% of the datasets were used for validation. The split is necessary as we can only get reliable
+results, when evaluating on non-trained data. Otherwise, we would evaluate on fitted data and have no statement on the generality of our trained network.
 
 ### Training
 #### Reference experiment
-This section should detail the results of the reference experiment. It should includes training metrics and a detailed explanation of the algorithm's performances.
+The basic training was run on the given dataset with 81 datasets (261 MB). On the figure below you can see the loss metrics. 
+After 25000 (~40mins) steps we terminate. To this time the improvements to the loss are very little.
+![](images/train_base/loss.png)
+The performance is rather poor. So some work has to be done to improve the accuracy.
+
+To get an impression check the following animation. Only few cars are detected. And no pedestrians are detected at all.
+![](images/train_base/animation.gif)
 
 #### Improve on the reference
-This section should highlight the different strategies you adopted to improve your model. It should contain relevant figures and details of your findings.
+##### Experiment 1
+At first, we try to add more augmentations. This virtually increases the diversity of the input dataset.
+We used the following Augmentations:
+```
+  data_augmentation_options {
+    random_horizontal_flip {
+    }
+  }
+  data_augmentation_options {
+    random_crop_image {
+      min_object_covered: 0.0
+      min_aspect_ratio: 0.75
+      max_aspect_ratio: 3.0
+      min_area: 0.75
+      max_area: 1.0
+      overlap_thresh: 0.0
+    }
+  data_augmentation_options {
+    random_adjust_brightness {
+    }
+  }
+  data_augmentation_options {
+    random_adjust_hue {
+    }
+  }
+  data_augmentation_options {
+    random_adjust_saturation {
+    }
+  }
+  data_augmentation_options {
+    random_distort_color {
+    }
+  }
+  data_augmentation_options {
+    random_black_patches {
+	max_black_patches: 10
+	probability: 0.1
+	size_to_image_ratio:0.7
+    }
+  }
+```
+
+random_horizontal_flip and random_crop_image were already used in the reference training.\
+We chose the additional augmentations because of different reasons.
+* using a varying brightness simulates different lighting conditions.
+* varying hue emulates color changes of cars, pedestrians, ... . This way the network gets trained more on shapes, rather than on combinations of color.
+* varying saturation and color distorion have a similar effect as the previous one.
+* Adding black patches simulates the effects of dead spots in the camera sensor. These can be created by sensor errors as well as by dirt on the lens.
+
+The results are now much better, but by far not yet perfect. We detect now much more cars, but still no pedestrians. 
+Also, as before, the car directly in front of us is not detected.
+![](images/train_aug/animation.gif)
+
+##### Experiment 2
+To further increase the dataset variance, we try now to use more data for training. Therefore, we download now 400 
+datasets from the waymo-open-dataset (instead of previously 100). Additionally, we use every fifth frame instead of 
+every tenth during processing. This increases the total amount of frames, but not the number of different scenes,
+as these frames are quite similar.\
+After the split we have ??? datasets remaining for training (?? GB). 
+We keep the augmentations from the first experiment.
