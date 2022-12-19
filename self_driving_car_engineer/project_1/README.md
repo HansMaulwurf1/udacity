@@ -240,6 +240,7 @@ We used the following Augmentations:
       max_area: 1.0
       overlap_thresh: 0.0
     }
+  }
   data_augmentation_options {
     random_adjust_brightness {
     }
@@ -260,7 +261,7 @@ We used the following Augmentations:
     random_black_patches {
 	max_black_patches: 10
 	probability: 0.1
-	size_to_image_ratio:0.7
+	size_to_image_ratio:0.07
     }
   }
 ```
@@ -269,7 +270,7 @@ random_horizontal_flip and random_crop_image were already used in the reference 
 We chose the additional augmentations because of different reasons.
 * using a varying brightness simulates different lighting conditions.
 * varying hue emulates color changes of cars, pedestrians, ... . This way the network gets trained more on shapes, rather than on combinations of color.
-* varying saturation and color distorion have a similar effect as the previous one.
+* varying saturation and color distortion have a similar effect as the previous one.
 * Adding black patches simulates the effects of dead spots in the camera sensor. These can be created by sensor errors as well as by dirt on the lens.
 
 The results are now much better, but by far not yet perfect. We detect now much more cars, but still no pedestrians. 
@@ -281,5 +282,33 @@ To further increase the dataset variance, we try now to use more data for traini
 datasets from the waymo-open-dataset (instead of previously 100). Additionally, we use every fifth frame instead of 
 every tenth during processing. This increases the total amount of frames, but not the number of different scenes,
 as these frames are quite similar.\
-After the split we have ??? datasets remaining for training (?? GB). 
-We keep the augmentations from the first experiment.
+After the split we have 360 datasets remaining for training (~1.9 GB). We keep the augmentations from the first experiment.
+
+Additionally we adjust the optimizer to following values.
+```
+  optimizer {
+    momentum_optimizer {
+      learning_rate {
+        cosine_decay_learning_rate {
+          learning_rate_base: 0.025
+          total_steps: 50000
+          warmup_learning_rate: 0.01
+          warmup_steps: 2000
+        }
+      }
+      momentum_optimizer_value: 0.7
+    }
+    use_moving_average: false
+  }
+```
+
+And in total we do 50k instead of 25k steps during training.
+
+The total loss gets down to ~1.1. And as seen in the animation below, the object detection of vehicles has improved significantly.
+We now get some kind of over-prediction of the cars. Meaning 2 bounding boxes are fitted to a single car. 
+However, we do not observe any false-positives from an eyeball evaluation. Some cars are however still missed.\
+Unfortunately pedestrians are not recognized at all. We are not quite sure why in this case. This could be part of further study.
+We could now further tweak the classification by tweaking the model parameters such as nodes, layers, 
+activation functions, optimizer, learning rate, augmentations, ... . But for the sake of the context of this project we close here.
+
+![](images/train_extended_datasets/animation.gif)
